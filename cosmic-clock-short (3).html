@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#282f33">
+<title>Cosmic Clock — Sun, Earth & Moon</title>
+<link rel="icon" href="data:,">
+<style>
+:root{color-scheme:dark;--bg:#202124;--panel:#282f33;--bar:#353a41;--line:#414a50;--muted:#aab4ba;--text:#fff;--teal:#2f7d76;--link:#5ad0d0}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:16px}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.wrap{max-width:1140px;margin:auto;padding:22px 20px 36px}
+header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;padding:16px 20px;background:var(--bar);border-radius:14px}
+h1{font-size:28px;font-weight:500;margin:0}
+h2{font-size:20px;margin:0 0 12px}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+nav a{padding:6px 10px;color:var(--text);font-size:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:16px}
+.hero{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(270px,.8fr);gap:16px}
+.hero .panel{margin:0}
+.scene-panel{padding:0;overflow:hidden;display:flex;flex-direction:column}
+#space,#moonViewer{background-color:#03050b}
+#space{height:430px;touch-action:pan-y;cursor:grab}
+.controls{display:flex;gap:7px;flex-wrap:wrap;align-items:center;padding:12px}
+.status{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:12px 12px 0;font-size:13px}
+.hint{font-size:12px;color:var(--muted);margin-right:auto}
+button{font:600 13px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;border:1px solid var(--teal);background:var(--teal);color:var(--text);border-radius:9px;padding:8px 11px;cursor:pointer}
+button:hover,button.active{background:#3a968e;border-color:#fff}
+button:disabled{opacity:.45;cursor:default}
+.label{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.time{font-size:44px;font-weight:750;letter-spacing:-.04em;font-variant-numeric:tabular-nums;margin:2px 0}
+.zone,.small{font-size:12px;color:var(--muted)}
+.rule{border:0;border-top:1px solid var(--line);margin:18px 0}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.big{font-size:20px;font-weight:700}
+#dateToggle{font-size:28px;width:52px;height:52px;padding:0;flex:none}
+.phase-icon{font-size:36px}
+.lab{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(240px,.8fr);gap:18px;align-items:center}
+#moonViewer{height:300px;border-radius:14px;overflow:hidden;background-color:#03050b}
+input[type=range]{width:100%;accent-color:var(--link);margin:14px 0}
+.buttons{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+ul{margin:0;padding-left:20px}li{margin:7px 0}
+.months{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;padding:0;list-style:none}
+.months li{margin:0;border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+.months li.sacred{border-color:var(--link);background:#23423f}
+.months b{display:block}.months span{font-size:12px;color:var(--muted)}
+.verses{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.verse{border-left:3px solid var(--teal);padding-left:13px}
+.verse p{margin:6px 0;font-size:14px}
+.arabic{font-size:21px;line-height:2;color:var(--text);text-align:right}
+.msg{height:100%;display:grid;place-items:center;padding:24px;text-align:center;color:var(--muted)}
+footer{font-size:12px;color:var(--muted);text-align:center;margin-top:18px}
+@media(max-width:850px){.hero,.lab{grid-template-columns:1fr}#space{height:340px}.months{grid-template-columns:repeat(2,minmax(0,1fr))}.verses{grid-template-columns:1fr}}
+@media(max-width:520px){.hint{flex-basis:100%}.wrap{padding:16px 16px 30px}.panel{padding:16px}.scene-panel{padding:0}.time{font-size:38px}#space{height:300px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>☾ Cosmic Clock</h1>
+  <nav aria-label="Main navigation">
+    <a href="#moon">Moon</a><a href="#calendar">Calendar</a><a href="#quran">Qur'an</a><a href="#hadith">Hadith</a>
+  </nav>
+</header>
+
+<main>
+<section class="hero">
+  <div class="panel scene-panel">
+    <div id="space" role="img" aria-label="3D model of the Sun, Earth and Moon"><div class="msg">Loading 3D model…</div></div>
+    <div class="status"><span id="speedText">Speed: 2 days per second</span><span id="modelDate"></span></div>
+    <div class="controls">
+      <span class="hint">Drag to rotate · pinch or scroll to zoom</span>
+      <button type="button" id="zoomOutBtn" disabled>− Zoom</button>
+      <button type="button" id="zoomInBtn" disabled>＋ Zoom</button>
+      <button type="button" id="slowerBtn" disabled>Slow down</button>
+      <button type="button" id="pauseBtn" disabled>Pause</button>
+      <button type="button" id="fasterBtn" disabled>Speed up</button>
+      <button type="button" id="resetBtn" disabled>Reset</button>
+    </div>
+  </div>
+  <aside class="panel">
+    <div class="label">Your local time</div>
+    <div class="time" id="clock">--:--:--</div>
+    <div class="zone" id="timezone"></div>
+    <hr class="rule">
+    <div class="row">
+      <div><div class="label" id="dateLabel">Gregorian date</div><div class="big" id="dateText">—</div></div>
+      <button type="button" id="dateToggle" aria-label="Show Hijri date" title="Show Hijri date">☾</button>
+    </div>
+    <div class="small" id="dateNote"></div>
+    <hr class="rule">
+    <div class="label">Moon phase today</div>
+    <div class="row" style="justify-content:flex-start">
+      <div class="phase-icon" id="phaseIcon"></div>
+      <div><div class="big" id="phaseName">—</div><div class="small" id="phaseDetail"></div></div>
+    </div>
+  </aside>
+</section>
+
+<section class="panel" id="moon">
+  <h2>Explore the Moon phases</h2>
+  <div class="lab">
+    <div id="moonViewer" role="img" aria-label="3D Moon showing the selected phase"><div class="msg">Loading 3D Moon…</div></div>
+    <div>
+      <div class="big" id="labPhaseName">—</div>
+      <div class="small" id="labDetail"></div>
+      <input id="phaseSlider" type="range" min="0" max="29.5" step="0.1" value="0" aria-label="Day of the lunar cycle">
+      <div class="buttons">
+        <button type="button" data-phase="0">New</button>
+        <button type="button" data-phase="7.4">First quarter</button>
+        <button type="button" data-phase="14.8">Full</button>
+        <button type="button" data-phase="22.1">Last quarter</button>
+        <button type="button" id="todayBtn">Today</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="panel" id="calendar">
+  <h2>The Hijri calendar: main points</h2>
+  <ul>
+    <li>It is a lunar calendar of <b>12 months</b>, each 29 or 30 days.</li>
+    <li>The year is about 10–11 days shorter than the solar year, so Ramadan moves through the seasons.</li>
+    <li>A month traditionally begins with sighting the young crescent. Some places also use calculations.</li>
+    <li>Four months are sacred (highlighted below).</li>
+  </ul>
+  <ol class="months">
+    <li class="sacred"><b>1. Muharram</b><span>Ashura on the 10th</span></li>
+    <li><b>2. Safar</b><span>Not a month of bad luck</span></li>
+    <li><b>3. Rabi' al-Awwal</b><span>Third month</span></li>
+    <li><b>4. Rabi' al-Thani</b><span>Fourth month</span></li>
+    <li><b>5. Jumada al-Ula</b><span>Fifth month</span></li>
+    <li><b>6. Jumada al-Akhirah</b><span>Sixth month</span></li>
+    <li class="sacred"><b>7. Rajab</b><span>Sacred month</span></li>
+    <li><b>8. Sha'ban</b><span>Much voluntary fasting</span></li>
+    <li><b>9. Ramadan</b><span>Obligatory fasting</span></li>
+    <li><b>10. Shawwal</b><span>Eid al-Fitr; six fasts</span></li>
+    <li class="sacred"><b>11. Dhul-Qa'dah</b><span>Sacred month</span></li>
+    <li class="sacred"><b>12. Dhul-Hijjah</b><span>Hajj, Arafah, Eid al-Adha</span></li>
+  </ol>
+</section>
+
+<section class="panel" id="quran">
+  <h2>Key Qur'anic verses</h2>
+  <div class="verses">
+    <article class="verse">
+      <div class="arabic" lang="ar" dir="rtl">وَقَدَّرَهُ مَنَازِلَ لِتَعْلَمُوا عَدَدَ السِّنِينَ وَالْحِسَابَ</div>
+      <p>The Moon was given phases so that people may know the count of years and calculation.</p>
+      <a href="https://quran.com/10/5" target="_blank" rel="noopener">Yunus 10:5 ↗</a>
+    </article>
+    <article class="verse">
+      <div class="arabic" lang="ar" dir="rtl">يَسْأَلُونَكَ عَنِ الْأَهِلَّةِ ۖ قُلْ هِيَ مَوَاقِيتُ لِلنَّاسِ وَالْحَجِّ</div>
+      <p>The new crescents mark times for people and for Hajj.</p>
+      <a href="https://quran.com/2/189" target="_blank" rel="noopener">Al-Baqarah 2:189 ↗</a>
+    </article>
+    <article class="verse">
+      <div class="arabic" lang="ar" dir="rtl">إِنَّ عِدَّةَ الشُّهُورِ عِندَ اللَّهِ اثْنَا عَشَرَ شَهْرًا</div>
+      <p>The number of months with Allah is twelve, and four of them are sacred.</p>
+      <a href="https://quran.com/9/36" target="_blank" rel="noopener">At-Tawbah 9:36 ↗</a>
+    </article>
+  </div>
+</section>
+
+<section class="panel" id="hadith">
+  <h2>Key Hadith</h2>
+  <ul>
+    <li>Begin and end the Ramadan fast by the crescent; if it is hidden, complete thirty days. <a href="https://sunnah.com/bukhari:1909" target="_blank" rel="noopener">Bukhari 1909 ↗</a></li>
+    <li>The sacred months are Dhul-Qa'dah, Dhul-Hijjah, Muharram and Rajab. <a href="https://sunnah.com/bukhari:4662" target="_blank" rel="noopener">Bukhari 4662 ↗</a></li>
+    <li>Fasting Ashura expiates the previous year's minor sins; fasting Arafah (for those not on Hajj) covers the previous and coming year. Three fasts each month are encouraged. <a href="https://sunnah.com/muslim:1162a" target="_blank" rel="noopener">Muslim 1162a ↗</a></li>
+    <li>Ramadan followed by six fasts in Shawwal is like fasting the whole year. <a href="https://sunnah.com/muslim:1164a" target="_blank" rel="noopener">Muslim 1164a ↗</a></li>
+    <li>Good deeds in the first ten days of Dhul-Hijjah are especially virtuous. <a href="https://sunnah.com/bukhari:969" target="_blank" rel="noopener">Bukhari 969 ↗</a></li>
+  </ul>
+</section>
+</main>
+
+<footer>Dates and Moon phases are estimates; local moon-sighting announcements may differ. The 3D model is not to scale. This is a learning guide, not a fatwa.</footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+const THREE_URL='https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js';
+const TEXTURES='https://threejs.org/examples/textures/planets/';
+const DAY=86400000, MONTH=29.530588853, NEW_MOON_JD=2451550.1;
+const $=id=>document.getElementById(id);
+
+/* ---------- Clock, dates and Moon phase (work without the 3D library) ---------- */
+const timeFmt=new Intl.DateTimeFormat(undefined,{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+const gregorianFmt=new Intl.DateTimeFormat('en-GB-u-ca-gregory',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+const hijriFmt=new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn',{day:'numeric',month:'numeric',year:'numeric'});
+const HIJRI_MONTHS=['Muharram','Safar',"Rabi' al-Awwal","Rabi' al-Thani",'Jumada al-Ula','Jumada al-Akhirah','Rajab',"Sha'ban",'Ramadan','Shawwal',"Dhul-Qa'dah",'Dhul-Hijjah'];
+function hijriDate(d){
+  if(!hijriFmt.resolvedOptions().calendar.startsWith('islamic'))return 'Not supported by this browser';
+  const part={};hijriFmt.formatToParts(d).forEach(x=>part[x.type]=x.value);
+  return `${part.day} ${HIJRI_MONTHS[part.month-1]} ${parseInt(part.year,10)} AH`;
+}
+const NAMES=['New Moon','Waxing Crescent','First Quarter','Waxing Gibbous','Full Moon','Waning Gibbous','Last Quarter','Waning Crescent'];
+const ICONS=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
+let showHijri=false;
+
+function lunarAge(d){const jd=d.getTime()/DAY+2440587.5;return ((jd-NEW_MOON_JD)%MONTH+MONTH)%MONTH;}
+function phase(age){
+  const p=age/MONTH, i=Math.round(p*8)%8;
+  return {name:NAMES[i],icon:ICONS[i],lit:Math.round((1-Math.cos(2*Math.PI*p))/2*100)};
+}
+function update(){
+  const now=new Date(), age=lunarAge(now), ph=phase(age);
+  $('clock').textContent=timeFmt.format(now);
+  const offset=-now.getTimezoneOffset(), mins=Math.abs(offset)%60;
+  $('timezone').textContent=`${Intl.DateTimeFormat().resolvedOptions().timeZone} · GMT${offset<0?'−':'+'}${Math.floor(Math.abs(offset)/60)}${mins?':'+String(mins).padStart(2,'0'):''}`;
+  $('dateLabel').textContent=showHijri?'Hijri date':'Gregorian date';
+  $('dateText').textContent=showHijri?hijriDate(now):gregorianFmt.format(now);
+  $('dateNote').textContent=(showHijri?'Umm al-Qura estimate. ':'')+'Tap the Moon to switch calendar.';
+  $('phaseIcon').textContent=ph.icon;
+  $('phaseName').textContent=ph.name;
+  $('phaseDetail').textContent=`Day ${age.toFixed(1)} of 29.5 · about ${ph.lit}% lit`;
+}
+$('dateToggle').addEventListener('click',()=>{
+  showHijri=!showHijri;
+  const b=$('dateToggle'), next=showHijri?'Show Gregorian date':'Show Hijri date';
+  b.textContent=showHijri?'☽':'☾';b.title=next;b.setAttribute('aria-label',next);
+  update();
+});
+update();setInterval(update,1000);
+
+/* ---------- Moon phase controls ---------- */
+const slider=$('phaseSlider');
+let lightMoon=()=>{};
+function showPhase(day){
+  const ph=phase(day);
+  slider.value=day;
+  $('labPhaseName').textContent=ph.name;
+  $('labDetail').textContent=`Day ${day.toFixed(1)} of 29.5 · about ${ph.lit}% lit`;
+  document.querySelectorAll('[data-phase]').forEach(b=>b.classList.toggle('active',Math.abs(b.dataset.phase-day)<.3));
+  lightMoon(day);
+}
+slider.addEventListener('input',()=>showPhase(Number(slider.value)));
+document.querySelectorAll('[data-phase]').forEach(b=>b.addEventListener('click',()=>showPhase(Number(b.dataset.phase))));
+$('todayBtn').addEventListener('click',()=>showPhase(lunarAge(new Date())));
+showPhase(lunarAge(new Date()));
+
+/* ---------- Star background (drawn once, so the stars never blink) ---------- */
+const STAR_TILE=600;
+(function(){
+  const c=document.createElement('canvas');c.width=c.height=STAR_TILE;
+  const g=c.getContext('2d');if(!g)return;
+  let seed=7;const rand=()=>(seed=seed*16807%2147483647)/2147483647;
+  for(let i=0;i<260;i++){
+    const r=i<12?1.6:.4+rand()*.7;
+    g.globalAlpha=.35+rand()*.65;g.fillStyle=['#ffffff','#cfe0ff','#ffe9c4'][i%3];
+    g.beginPath();g.arc(2+rand()*(STAR_TILE-4),2+rand()*(STAR_TILE-4),r,0,Math.PI*2);g.fill();
+  }
+  const image=`url(${c.toDataURL()})`;
+  $('space').style.backgroundImage=image;$('moonViewer').style.backgroundImage=image;
+})();
+
+/* ---------- 3D models ---------- */
+function unavailable(id){$(id).innerHTML='<div class="msg">3D view unavailable. Check your internet connection and browser graphics settings, then reload.</div>';}
+
+function build3D(THREE){
+  const loader=new THREE.TextureLoader();
+  function texture(file,material){
+    loader.load(TEXTURES+file,t=>{
+      t.colorSpace=THREE.SRGBColorSpace;material.map=t;material.color.set(0xffffff);
+      material.visible=true;material.needsUpdate=true;
+    });
+  }
+  const ball=(r,material)=>new THREE.Mesh(new THREE.SphereGeometry(r,64,64),material);
+  function stage(id,fov){
+    const host=$(id), renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    renderer.outputColorSpace=THREE.SRGBColorSpace;
+    host.replaceChildren(renderer.domElement);
+    const scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(fov,1,.1,500);
+    const resize=()=>{
+      const w=host.clientWidth,h=host.clientHeight;
+      if(!w||!h)return;
+      camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);
+    };
+    resize();new ResizeObserver(resize).observe(host);
+    return {scene,camera,renderer};
+  }
+
+  /* Sun, Earth and Moon */
+  const main=stage('space',48);
+  main.scene.add(new THREE.AmbientLight(0x9aafd8,.55),new THREE.PointLight(0xffd69a,180,180,1.4));
+  main.scene.add(ball(3.3,new THREE.MeshBasicMaterial({color:0xffc45e})));
+  const earthOrbit=new THREE.Group();main.scene.add(earthOrbit);
+  const earthSystem=new THREE.Group();earthSystem.position.x=15;earthOrbit.add(earthSystem);
+  const earthMat=new THREE.MeshStandardMaterial({color:0x3f7fd0,roughness:1});
+  const earth=ball(1.35,earthMat);earth.rotation.z=.12;earthSystem.add(earth);
+  texture('earth_atmos_2048.jpg',earthMat);
+  const moonOrbit=new THREE.Group();earthSystem.add(moonOrbit);
+  const moonMat=new THREE.MeshStandardMaterial({color:0xbfc3cc,roughness:1});
+  const moon=ball(.43,moonMat);moon.position.x=3.15;moonOrbit.add(moon);
+  texture('moon_1024.jpg',moonMat);
+  function orbit(radius,parent){
+    const points=[];
+    for(let i=0;i<180;i++){const a=i/180*Math.PI*2;points.push(new THREE.Vector3(Math.cos(a)*radius,0,Math.sin(a)*radius));}
+    parent.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:0x6c91c9,transparent:true,opacity:.45})));
+  }
+  orbit(15,main.scene);orbit(3.15,earthSystem);
+
+  /* Camera controls: drag, scroll, pinch and buttons */
+  const view={yaw:0,pitch:.6,zoom:1};
+  const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+  const zoomBy=f=>{view.zoom=clamp(view.zoom*f,.35,1.8);};
+  const pointers=new Map(), canvas=main.renderer.domElement;
+  const spread=()=>{const [a,b]=[...pointers.values()];return Math.hypot(a.x-b.x,a.y-b.y);};
+  canvas.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);});
+  canvas.addEventListener('pointermove',e=>{
+    const last=pointers.get(e.pointerId);if(!last)return;
+    const before=pointers.size===2?spread():0;
+    const dx=e.clientX-last.x,dy=e.clientY-last.y;
+    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pointers.size===1){view.yaw-=dx*.006;view.pitch=clamp(view.pitch+dy*.006,-1.2,1.2);}
+    else if(before){const after=spread();if(after)zoomBy(before/after);}
+  });
+  ['pointerup','pointercancel'].forEach(n=>canvas.addEventListener(n,e=>pointers.delete(e.pointerId)));
+  canvas.addEventListener('wheel',e=>{e.preventDefault();zoomBy(Math.exp(e.deltaY*.001));},{passive:false});
+  const SPEEDS=[.25,.5,1,2,4,8,16,32,64]; /* model days per real second */
+  const START=3;
+  let speed=START, paused=false, modelTime=Date.now(), previous=null;
+  const modelFmt=new Intl.DateTimeFormat('en-GB-u-ca-gregory',{day:'numeric',month:'long',year:'numeric'});
+  function showSpeed(){
+    const v=SPEEDS[speed];
+    $('speedText').textContent=paused?'Paused':`Speed: ${v} ${v>1?'days':'day'} per second`;
+    $('pauseBtn').textContent=paused?'Resume':'Pause';
+    $('slowerBtn').disabled=speed===0;$('fasterBtn').disabled=speed===SPEEDS.length-1;
+  }
+  $('zoomInBtn').addEventListener('click',()=>zoomBy(.82));
+  $('zoomOutBtn').addEventListener('click',()=>zoomBy(1.22));
+  $('slowerBtn').addEventListener('click',()=>{speed=Math.max(0,speed-1);showSpeed();});
+  $('fasterBtn').addEventListener('click',()=>{speed=Math.min(SPEEDS.length-1,speed+1);showSpeed();});
+  $('pauseBtn').addEventListener('click',()=>{paused=!paused;showSpeed();});
+  $('resetBtn').addEventListener('click',()=>{view.yaw=0;view.pitch=.6;view.zoom=1;speed=START;paused=false;modelTime=Date.now();showSpeed();});
+  ['zoomInBtn','zoomOutBtn','pauseBtn','resetBtn'].forEach(id=>$(id).disabled=false);
+  showSpeed();
+
+  /* Moon phase viewer */
+  const lab=stage('moonViewer',38);lab.camera.position.z=5.2;
+  const light=new THREE.DirectionalLight(0xffffff,3);
+  lab.scene.add(new THREE.AmbientLight(0x8fa3c8,.12),light);
+  const globeMat=new THREE.MeshStandardMaterial({color:0xbfc3cc,roughness:1});
+  const globe=ball(1.45,globeMat);globe.rotation.y=-Math.PI/2; /* near side faces the viewer */
+  lab.scene.add(globe);texture('moon_1024.jpg',globeMat);
+  lightMoon=day=>{const a=day/MONTH*Math.PI*2;light.position.set(Math.sin(a)*8,0,-Math.cos(a)*8);};
+  lightMoon(Number(slider.value));
+
+  function frame(time){
+    requestAnimationFrame(frame);
+    const seconds=previous===null?0:Math.min((time-previous)/1000,.1);previous=time;
+    if(!paused){
+      modelTime+=seconds*SPEEDS[speed]*DAY;
+      earth.rotation.y+=seconds*.25*Math.sqrt(SPEEDS[speed]); /* spin is slowed so it stays visible */
+    }
+    const now=new Date(modelTime), start=new Date(now.getFullYear(),0,1), end=new Date(now.getFullYear()+1,0,1);
+    earthOrbit.rotation.y=(now-start)/(end-start)*Math.PI*2;
+    moonOrbit.rotation.y=lunarAge(now)/MONTH*Math.PI*2+Math.PI; /* new Moon sits between Earth and Sun */
+    const label='Model date: '+modelFmt.format(now);
+    if($('modelDate').textContent!==label)$('modelDate').textContent=label;
+    const distance=46*view.zoom*Math.max(1,1.35/main.camera.aspect), flat=Math.cos(view.pitch)*distance;
+    main.camera.position.set(Math.sin(view.yaw)*flat,Math.sin(view.pitch)*distance,Math.cos(view.yaw)*flat);
+    main.camera.lookAt(0,0,0);
+    $('space').style.backgroundPosition=`${(view.yaw*STAR_TILE/3).toFixed(1)}px ${(view.pitch*STAR_TILE/3).toFixed(1)}px`;
+    main.renderer.render(main.scene,main.camera);
+    lab.renderer.render(lab.scene,lab.camera);
+  }
+  requestAnimationFrame(frame);
+}
+
+import(THREE_URL).then(build3D).catch(()=>{unavailable('space');unavailable('moonViewer');});
+})();
+</script>
+</body>
+</html>
